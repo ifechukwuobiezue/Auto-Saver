@@ -53,9 +53,6 @@ client.on('qr', qr => qrcode.generate(qr, { small: true }));
 
 client.on('ready', () => {
   console.log('WhatsApp ready! Listening for *incoming* messages only…');
-  // IMPORTANT:
-  // ❌ Do NOT put client.getChats() here
-  // ❌ Do NOT loop chats here
 });
 
 // Only incoming 1‑1 messages
