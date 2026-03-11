@@ -1,5 +1,7 @@
+// index.js
 const qrcode = require("qrcode-terminal");
 const { Client, LocalAuth } = require("whatsapp-web.js");
+const chromium = require("@sparticuz/chromium"); // only used on Render
 const { google } = require("googleapis");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
@@ -12,11 +14,18 @@ const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
 const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
 
 // ===== SUPABASE SETUP =====
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 const USER_EMAIL = "theathenahubs@gmail.com"; // fixed user for now
 
 // ===== GOOGLE CONTACTS SETUP =====
-const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+const oauth2Client = new google.auth.OAuth2(
+  CLIENT_ID,
+  CLIENT_SECRET,
+  REDIRECT_URI
+);
 oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 const people = google.people({ version: "v1", auth: oauth2Client });
 
@@ -47,8 +56,6 @@ async function saveContact(name, phone) {
   }
 
   const formattedPhone = phone.startsWith("+") ? phone : "+" + phone;
-
-  // log incoming contact
   console.log("Incoming message from:", formattedPhone, "Name:", name);
 
   if (await isNumberSaved(formattedPhone)) {
@@ -88,38 +95,70 @@ async function saveContact(name, phone) {
   }
 }
 
-// ===== WHATSAPP CLIENT =====
-const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: {
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
-  }
+// ===== MAIN START FUNCTION =====
+async function start() {
+  // Only use Sparticuz on Render (Linux); locally keep default behavior.
+  const isRender = process.env.RENDER === "true";
+
+  const puppeteerConfig = isRender
+    ? {
+        executablePath: await chromium.executablePath(),
+        headless: true,
+        args: [
+          ...chromium.args,
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-zygote",
+          "--disable-gpu",
+        ],
+      }
+    : {
+        // Local dev: let whatsapp-web.js pick browser; headless QR only.
+        headless: true,
+      };
+
+  const client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: puppeteerConfig,
+  });
+
+  client.on("qr", (qr) => {
+    console.log("QR RECEIVED, scan with your phone:");
+    qrcode.generate(qr, { small: true });
+  });
+
+  client.on("ready", () => {
+    console.log("WhatsApp ready! Listening for incoming messages…");
+  });
+
+  client.on("message", async (msg) => {
+    try {
+      if (msg.from.includes("@g.us") || msg.isStatus) return;
+      if (msg.fromMe) return;
+
+      const contact = await msg.getContact();
+      const waId = contact.id?._serialized || msg.from;
+      if (!waId) return console.warn("No waId for msg.from =", msg.from);
+
+      const phone = "+" + waId.split("@")[0];
+      const name =
+        contact.pushname ||
+        contact.name ||
+        contact.shortName ||
+        phone;
+
+      await saveContact(name, phone);
+    } catch (e) {
+      console.error("❌ Error in message handler:", e.message || e);
+    }
+  });
+
+  await client.initialize();
+}
+
+start().catch((e) => {
+  console.error("Fatal error starting client:", e);
+  process.exit(1);
 });
-
-client.on("qr", (qr) => qrcode.generate(qr, { small: true }));
-
-client.on("ready", () => {
-  console.log("WhatsApp ready! Listening for incoming messages…");
-});
-
-// Only 1-1 incoming messages
-client.on("message", async (msg) => {
-  try {
-    if (msg.from.includes("@g.us") || msg.isStatus) return; // ignore groups & statuses
-    if (msg.fromMe) return; // ignore self messages
-
-    const contact = await msg.getContact();
-    const waId = contact.id?._serialized || msg.from;
-    if (!waId) return console.warn("No waId for msg.from =", msg.from);
-
-    const phone = "+" + waId.split("@")[0];
-    const name = contact.pushname || contact.name || contact.shortName || phone;
-
-    await saveContact(name, phone);
-  } catch (e) {
-    console.error("❌ Error in message handler:", e.message || e);
-  }
-});
-
-client.initialize();
