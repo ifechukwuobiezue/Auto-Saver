@@ -110,10 +110,17 @@ async function saveContact(name, phone) {
 // ===== MAIN START FUNCTION =====
 async function start() {
   const isRender = process.env.RENDER === "true";
+  console.log("isRender =", isRender, "NODE_ENV =", process.env.NODE_ENV);
 
-  const puppeteerConfig = isRender
-    ? {
-        executablePath: await chromium.executablePath(),
+  let puppeteerConfig;
+
+  try {
+    if (isRender) {
+      const execPath = await chromium.executablePath();
+      console.log("Using Sparticuz chromium executablePath:", execPath);
+
+      puppeteerConfig = {
+        executablePath: execPath,
         headless: true,
         args: [
           ...chromium.args,
@@ -124,10 +131,18 @@ async function start() {
           "--no-zygote",
           "--disable-gpu",
         ],
-      }
-    : {
+      };
+    } else {
+      puppeteerConfig = {
         headless: true, // local: QR only in terminal
       };
+    }
+  } catch (e) {
+    console.error("❌ Error computing puppeteerConfig:", e.message || e);
+    puppeteerConfig = { headless: true };
+  }
+
+  console.log("Puppeteer config ready");
 
   const client = new Client({
     authStrategy: new LocalAuth(),
@@ -175,8 +190,10 @@ async function start() {
     }
   });
 
+  console.log("Initializing WhatsApp client…");
   try {
     await client.initialize();
+    console.log("client.initialize() resolved");
   } catch (e) {
     console.error("❌ Error during initialize:", e.message || e);
   }
