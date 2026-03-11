@@ -200,7 +200,11 @@ async function start() {
   }
 }
 
-start().catch((e) => {
-  console.error("Fatal error starting client:", e);
-  process.exit(1);
-});
+(async () => {
+  try {
+    await start();
+  } catch (e) {
+    console.error("Fatal error starting client:", e);
+  }
+})();
+
