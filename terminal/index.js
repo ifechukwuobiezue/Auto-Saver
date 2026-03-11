@@ -7,6 +7,9 @@ const { createClient } = require("@supabase/supabase-js");
 const http = require("http");
 require("dotenv").config();
 
+console.log("INDEX.JS STARTED, ENV RENDER =", process.env.RENDER);
+
+
 // ===== TINY HTTP SERVER FOR RENDER HEALTH CHECK =====
 const PORT = process.env.PORT || 10000;
 http
