@@ -4,7 +4,19 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const chromium = require("@sparticuz/chromium"); // only used on Render
 const { google } = require("googleapis");
 const { createClient } = require("@supabase/supabase-js");
+const http = require("http");
 require("dotenv").config();
+
+// ===== TINY HTTP SERVER FOR RENDER HEALTH CHECK =====
+const PORT = process.env.PORT || 10000;
+http
+  .createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("OK");
+  })
+  .listen(PORT, () => {
+    console.log("Health server listening on port", PORT);
+  });
 
 // ===== CONFIG =====
 const TAG_SUFFIX = " ATH";
@@ -97,7 +109,6 @@ async function saveContact(name, phone) {
 
 // ===== MAIN START FUNCTION =====
 async function start() {
-  // Only use Sparticuz on Render (Linux); locally keep default behavior.
   const isRender = process.env.RENDER === "true";
 
   const puppeteerConfig = isRender
@@ -115,13 +126,14 @@ async function start() {
         ],
       }
     : {
-        // Local dev: let whatsapp-web.js pick browser; headless QR only.
-        headless: true,
+        headless: true, // local: QR only in terminal
       };
 
   const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: puppeteerConfig,
+    authTimeoutMs: 120000,
+    qrMaxRetries: 5,
   });
 
   client.on("qr", (qr) => {
@@ -131,6 +143,14 @@ async function start() {
 
   client.on("ready", () => {
     console.log("WhatsApp ready! Listening for incoming messages…");
+  });
+
+  client.on("auth_failure", (msg) => {
+    console.error("❌ Auth failure:", msg);
+  });
+
+  client.on("disconnected", (reason) => {
+    console.error("❌ Client disconnected:", reason);
   });
 
   client.on("message", async (msg) => {
@@ -155,7 +175,11 @@ async function start() {
     }
   });
 
-  await client.initialize();
+  try {
+    await client.initialize();
+  } catch (e) {
+    console.error("❌ Error during initialize:", e.message || e);
+  }
 }
 
 start().catch((e) => {
