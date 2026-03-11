@@ -119,25 +119,23 @@ async function start() {
 
   try {
     if (isRender) {
+      // Safer Sparticuz usage on Render
       const execPath = await chromium.executablePath();
-      console.log("Using Sparticuz chromium executablePath:", execPath);
+      console.log("chromium.executablePath() returned:", execPath);
 
       puppeteerConfig = {
         executablePath: execPath,
-        headless: true,
+        headless: chromium.headless,
         args: [
           ...chromium.args,
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-zygote",
-          "--disable-gpu",
         ],
       };
     } else {
       puppeteerConfig = {
-        headless: true, // local: QR only in terminal
+        headless: true, // local
       };
     }
   } catch (e) {
@@ -145,7 +143,7 @@ async function start() {
     puppeteerConfig = { headless: true };
   }
 
-  console.log("Puppeteer config ready");
+  console.log("Puppeteer config ready:", puppeteerConfig);
 
   const client = new Client({
     authStrategy: new LocalAuth(),
