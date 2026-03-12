@@ -1,3 +1,6 @@
-2026/03/10-04:22:13.453 6008 Reusing MANIFEST C:\Users\OMILE\Documents\Autosaver\autosaver\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
-2026/03/10-04:22:13.471 6008 Recovering log #3
-2026/03/10-04:22:13.477 6008 Reusing old log C:\Users\OMILE\Documents\Autosaver\autosaver\.wwebjs_auth\session\Default\Local Storage\leveldb/000003.log 
+2026/03/10-14:52:13.038 3a9c Reusing MANIFEST C:\Users\OMILE\Documents\Autosaver\autosaver\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
+2026/03/10-14:52:13.078 3a9c Recovering log #4
+2026/03/10-14:52:13.088 3a9c Reusing old log C:\Users\OMILE\Documents\Autosaver\autosaver\.wwebjs_auth\session\Default\Local Storage\leveldb/000004.log 
+2026/03/11-14:38:40.166 13e0 Level-0 table #8: started
+2026/03/11-14:38:42.374 13e0 Level-0 table #8: 14007 bytes OK
+2026/03/11-14:38:42.437 13e0 Delete type=0 #4

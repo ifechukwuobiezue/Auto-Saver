@@ -6,10 +6,11 @@ const scopes = [
   "openid",
   "profile",
   "email",
-  "https://www.googleapis.com/auth/contacts.readonly",
+  // Needed to CREATE contacts, not just read.
+  "https://www.googleapis.com/auth/contacts",
 ].join(" ");
 
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
@@ -35,4 +36,4 @@ const authOptions: NextAuthOptions = {
 
 const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST }; 
+export { handler as GET, handler as POST };

@@ -15,7 +15,12 @@ export default function WhatsAppQRCard({
   userEmail,
   onSignOut,
 }: Props) {
-  const connected = waState === "connected";
+  // Treat any non-error, non-disconnected, non-QR state as "connected"
+  const connected =
+    waState !== "idle" &&
+    waState !== "qr" &&
+    waState !== "disconnected" &&
+    waState !== "error";
 
   return (
     <div className="bg-[#212C30] rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] p-6 md:p-12 w-full max-w-[960px] min-h-[480px] flex flex-col">
@@ -46,31 +51,61 @@ export default function WhatsAppQRCard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 flex-1 items-center">
 
         {/* LEFT INSTRUCTIONS */}
-        <div>
+        <div className="flex flex-col">
           <h2 className="text-2xl font-medium text-white mb-8">
             Link WhatsApp
           </h2>
 
-          <ol className="space-y-6 text-sm text-white">
-            <li className="flex gap-3">
-              <span className="text-green-500 font-semibold">1.</span>
-              Open WhatsApp on your phone
-            </li>
+          <div className="flex flex-col relative">
 
-            <li className="flex gap-3">
-              <span className="text-green-500 font-semibold">2.</span>
-              Tap <b>Linked Devices</b>
-            </li>
+            {/* STEP 1 */}
+            <div className="flex items-start gap-4 pb-6 relative">
+              <div className="flex flex-col items-center z-10">
+                <div className="w-7 h-7 rounded-full border-2 border-green-500 flex items-center justify-center text-xs font-medium text-green-500 bg-[#212C30]">
+                  1
+                </div>
+              </div>
 
-            <li className="flex gap-3">
-              <span className="text-green-500 font-semibold">3.</span>
-              Tap <b>Link a device</b> and scan the QR
-            </li>
-          </ol>
+              <p className="text-sm text-white pt-1">
+                Open WhatsApp on your phone
+              </p>
+
+              <div className="absolute left-[13px] top-[28px] w-[2px] h-[calc(100%-16px)] bg-gray-600" />
+            </div>
+
+            {/* STEP 2 */}
+            <div className="flex items-start gap-4 pb-6 relative">
+              <div className="flex flex-col items-center z-10">
+                <div className="w-7 h-7 rounded-full border-2 border-green-500 flex items-center justify-center text-xs font-medium text-green-500 bg-[#212C30]">
+                  2
+                </div>
+              </div>
+
+              <p className="text-sm text-white pt-1">
+                Tap <span className="font-semibold">Linked Devices</span>
+              </p>
+
+              <div className="absolute left-[13px] top-[28px] w-[2px] h-[calc(100%-16px)] bg-gray-600" />
+            </div>
+
+            {/* STEP 3 */}
+            <div className="flex items-start gap-4">
+              <div className="flex flex-col items-center z-10">
+                <div className="w-7 h-7 rounded-full border-2 border-green-500 flex items-center justify-center text-xs font-medium text-green-500 bg-[#212C30]">
+                  3
+                </div>
+              </div>
+
+              <p className="text-sm text-white pt-1">
+                Tap <span className="font-semibold">Link a device</span> and scan the QR code
+              </p>
+            </div>
+
+          </div>
 
           <a
             href="https://www.linkedin.com/in/ifechukwuobiezue/"
-            className="text-green-400 text-sm mt-8 inline-block hover:underline"
+            className="text-green-400 text-sm mt-8 inline-flex items-center gap-1 hover:underline"
           >
             Need help?
           </a>
@@ -85,7 +120,11 @@ export default function WhatsAppQRCard({
             </div>
           )}
 
-          {qr ? (
+          {connected ? (
+            <div className="text-green-400 text-sm">
+              Connected. Keep this tab open.
+            </div>
+          ) : qr ? (
             <div className="bg-white p-3 rounded-lg">
               <QRCode value={qr} size={240} />
             </div>
@@ -96,6 +135,7 @@ export default function WhatsAppQRCard({
           )}
 
         </div>
+
       </div>
     </div>
   );
