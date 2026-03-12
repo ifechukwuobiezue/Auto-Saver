@@ -1,11 +1,9 @@
+// index.js
 const qrcode = require("qrcode-terminal");
 const { Client, LocalAuth } = require("whatsapp-web.js");
-const chromium = require("@sparticuz/chromium");
 const { google } = require("googleapis");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
-
-console.log("INDEX.JS STARTED, ENV RENDER =", process.env.RENDER);
 
 // ===== CONFIG =====
 const TAG_SUFFIX = " ATH";
@@ -19,7 +17,7 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-const USER_EMAIL = "theathenahubs@gmail.com";
+const USER_EMAIL = "theathenahubs@gmail.com"; // fixed user for now
 
 // ===== GOOGLE CONTACTS SETUP =====
 const oauth2Client = new google.auth.OAuth2(
@@ -33,6 +31,7 @@ const people = google.people({ version: "v1", auth: oauth2Client });
 // ===== IN-MEMORY GUARD =====
 const seenThisRun = new Set();
 
+// ===== HELPER: CHECK IF NUMBER ALREADY SAVED =====
 async function isNumberSaved(phone) {
   if (seenThisRun.has(phone)) return true;
 
@@ -48,6 +47,7 @@ async function isNumberSaved(phone) {
   return data && data.length > 0;
 }
 
+// ===== SAVE CONTACT =====
 async function saveContact(name, phone) {
   if (!phone) {
     console.warn("No phone, skipping save");
@@ -66,6 +66,7 @@ async function saveContact(name, phone) {
   const taggedName = `${name || formattedPhone}${TAG_SUFFIX}`;
 
   try {
+    // Save to Google
     await people.people.createContact({
       requestBody: {
         names: [{ givenName: taggedName }],
@@ -74,6 +75,7 @@ async function saveContact(name, phone) {
     });
     console.log("✅ Saved contact to Google:", taggedName, formattedPhone);
 
+    // Save to Supabase
     const { error } = await supabase.from("saved_contacts").insert([
       {
         user_email: USER_EMAIL,
@@ -92,40 +94,21 @@ async function saveContact(name, phone) {
   }
 }
 
+// ===== MAIN START FUNCTION =====
 async function start() {
-  const isRender = process.env.RENDER === "true";
-  console.log("isRender =", isRender, "NODE_ENV =", process.env.NODE_ENV);
-
-  let puppeteerConfig;
-
-  try {
-    if (isRender) {
-      const execPath = await chromium.executablePath();
-      console.log("chromium.executablePath() returned:", execPath);
-
-      puppeteerConfig = {
-        executablePath: execPath,
-        headless: chromium.headless,
-        args: [
-          ...chromium.args,
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-        ],
-      };
-    } else {
-      puppeteerConfig = { headless: true };
-    }
-  } catch (e) {
-    console.error("❌ Error computing puppeteerConfig:", e.message || e);
-    puppeteerConfig = { headless: true };
-  }
-
-  console.log("Puppeteer config ready");
+  console.log("INDEX.JS STARTED");
+  console.log("NODE_ENV =", process.env.NODE_ENV);
 
   const client = new Client({
     authStrategy: new LocalAuth(),
-    puppeteer: puppeteerConfig,
+    puppeteer: {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+      ],
+    },
     authTimeoutMs: 120000,
     qrMaxRetries: 5,
   });
