@@ -1,25 +1,11 @@
-// index.js
 const qrcode = require("qrcode-terminal");
 const { Client, LocalAuth } = require("whatsapp-web.js");
-const chromium = require("@sparticuz/chromium"); // only used on Render
+const chromium = require("@sparticuz/chromium");
 const { google } = require("googleapis");
 const { createClient } = require("@supabase/supabase-js");
-const http = require("http");
 require("dotenv").config();
 
 console.log("INDEX.JS STARTED, ENV RENDER =", process.env.RENDER);
-
-
-// ===== TINY HTTP SERVER FOR RENDER HEALTH CHECK =====
-const PORT = process.env.PORT || 10000;
-http
-  .createServer((req, res) => {
-    res.writeHead(200, { "Content-Type": "text/plain" });
-    res.end("OK");
-  })
-  .listen(PORT, () => {
-    console.log("Health server listening on port", PORT);
-  });
 
 // ===== CONFIG =====
 const TAG_SUFFIX = " ATH";
@@ -33,7 +19,7 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-const USER_EMAIL = "theathenahubs@gmail.com"; // fixed user for now
+const USER_EMAIL = "theathenahubs@gmail.com";
 
 // ===== GOOGLE CONTACTS SETUP =====
 const oauth2Client = new google.auth.OAuth2(
@@ -47,7 +33,6 @@ const people = google.people({ version: "v1", auth: oauth2Client });
 // ===== IN-MEMORY GUARD =====
 const seenThisRun = new Set();
 
-// ===== HELPER: CHECK IF NUMBER ALREADY SAVED =====
 async function isNumberSaved(phone) {
   if (seenThisRun.has(phone)) return true;
 
@@ -63,7 +48,6 @@ async function isNumberSaved(phone) {
   return data && data.length > 0;
 }
 
-// ===== SAVE CONTACT =====
 async function saveContact(name, phone) {
   if (!phone) {
     console.warn("No phone, skipping save");
@@ -82,7 +66,6 @@ async function saveContact(name, phone) {
   const taggedName = `${name || formattedPhone}${TAG_SUFFIX}`;
 
   try {
-    // Save to Google
     await people.people.createContact({
       requestBody: {
         names: [{ givenName: taggedName }],
@@ -91,7 +74,6 @@ async function saveContact(name, phone) {
     });
     console.log("✅ Saved contact to Google:", taggedName, formattedPhone);
 
-    // Save to Supabase
     const { error } = await supabase.from("saved_contacts").insert([
       {
         user_email: USER_EMAIL,
@@ -110,7 +92,6 @@ async function saveContact(name, phone) {
   }
 }
 
-// ===== MAIN START FUNCTION =====
 async function start() {
   const isRender = process.env.RENDER === "true";
   console.log("isRender =", isRender, "NODE_ENV =", process.env.NODE_ENV);
@@ -119,7 +100,6 @@ async function start() {
 
   try {
     if (isRender) {
-      // Safer Sparticuz usage on Render
       const execPath = await chromium.executablePath();
       console.log("chromium.executablePath() returned:", execPath);
 
@@ -134,16 +114,14 @@ async function start() {
         ],
       };
     } else {
-      puppeteerConfig = {
-        headless: true, // local
-      };
+      puppeteerConfig = { headless: true };
     }
   } catch (e) {
     console.error("❌ Error computing puppeteerConfig:", e.message || e);
     puppeteerConfig = { headless: true };
   }
 
-  console.log("Puppeteer config ready:", puppeteerConfig);
+  console.log("Puppeteer config ready");
 
   const client = new Client({
     authStrategy: new LocalAuth(),
@@ -200,11 +178,6 @@ async function start() {
   }
 }
 
-(async () => {
-  try {
-    await start();
-  } catch (e) {
-    console.error("Fatal error starting client:", e);
-  }
-})();
-
+start().catch((e) => {
+  console.error("Fatal error starting client:", e);
+});
