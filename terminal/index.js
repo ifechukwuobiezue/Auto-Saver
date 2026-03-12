@@ -98,7 +98,7 @@ async function start() {
     authStrategy: new LocalAuth(),
     puppeteer: {
       headless: true,
-      executablePath: process.env.NODE_ENV === "production"
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
         ? "/usr/bin/chromium"
         : undefined,
       args: [
