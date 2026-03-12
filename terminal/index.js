@@ -33,8 +33,6 @@ const seenThisRun = new Set();
 
 // ===== HELPER: CHECK IF NUMBER ALREADY SAVED =====
 async function isNumberSaved(phone) {
-  if (seenThisRun.has(phone)) return true;
-
   const { data, error } = await supabase
     .from("saved_contacts")
     .select("id")
@@ -55,6 +53,14 @@ async function saveContact(name, phone) {
   }
 
   const formattedPhone = phone.startsWith("+") ? phone : "+" + phone;
+
+  // Block duplicates immediately before any async calls
+  if (seenThisRun.has(formattedPhone)) {
+    console.log("Already seen this run:", formattedPhone);
+    return;
+  }
+  seenThisRun.add(formattedPhone);
+
   console.log("Incoming message from:", formattedPhone, "Name:", name);
 
   if (await isNumberSaved(formattedPhone)) {
@@ -62,7 +68,6 @@ async function saveContact(name, phone) {
     return;
   }
 
-  seenThisRun.add(formattedPhone);
   const taggedName = `${name || formattedPhone}${TAG_SUFFIX}`;
 
   try {
@@ -89,6 +94,8 @@ async function saveContact(name, phone) {
     }
   } catch (e) {
     console.error("❌ Failed to save contact (Google):", e.message || e);
+    // Remove from seen so it can retry next message
+    seenThisRun.delete(formattedPhone);
   }
 }
 
