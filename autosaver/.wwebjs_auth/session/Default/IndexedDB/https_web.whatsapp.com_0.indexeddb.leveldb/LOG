@@ -1,5 +1,0 @@
-2026/03/11-14:39:13.340 4ea8 Reusing MANIFEST C:\Users\OMILE\Documents\Autosaver\autosaver\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2026/03/11-14:39:13.341 4ea8 Recovering log #28
-2026/03/11-14:39:13.348 4ea8 Reusing old log C:\Users\OMILE\Documents\Autosaver\autosaver\.wwebjs_auth\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000028.log 
-2026/03/11-14:39:13.349 4ea8 Delete type=2 #26
-2026/03/11-14:39:13.452 5588 Manual compaction at level-0 from '\x00\x09\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0a\x00\x00\x00' @ 0 : 0; will stop at (end)
