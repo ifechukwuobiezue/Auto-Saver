@@ -22,10 +22,11 @@ RUN apt-get update && apt-get install -y \
     libx11-6 \
     libxext6 \
     --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s $(which chromium || which chromium-browser) /usr/local/bin/chromium-fixed
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/local/bin/chromium-fixed
 ENV NODE_ENV=production
 
 WORKDIR /app
