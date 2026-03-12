@@ -17,7 +17,7 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-const USER_EMAIL = "theathenahubs@gmail.com"; // fixed user for now
+const USER_EMAIL = "theathenahubs@gmail.com";
 
 // ===== GOOGLE CONTACTS SETUP =====
 const oauth2Client = new google.auth.OAuth2(
@@ -66,7 +66,6 @@ async function saveContact(name, phone) {
   const taggedName = `${name || formattedPhone}${TAG_SUFFIX}`;
 
   try {
-    // Save to Google
     await people.people.createContact({
       requestBody: {
         names: [{ givenName: taggedName }],
@@ -75,7 +74,6 @@ async function saveContact(name, phone) {
     });
     console.log("✅ Saved contact to Google:", taggedName, formattedPhone);
 
-    // Save to Supabase
     const { error } = await supabase.from("saved_contacts").insert([
       {
         user_email: USER_EMAIL,
@@ -96,17 +94,20 @@ async function saveContact(name, phone) {
 
 // ===== MAIN START FUNCTION =====
 async function start() {
-  console.log("INDEX.JS STARTED");
-  console.log("NODE_ENV =", process.env.NODE_ENV);
-
   const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
       headless: true,
+      executablePath: process.env.NODE_ENV === "production"
+        ? "/usr/bin/chromium"
+        : undefined,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--single-process",
+        "--no-zygote",
       ],
     },
     authTimeoutMs: 120000,
