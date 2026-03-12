@@ -23,15 +23,22 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
-    && ln -s $(which chromium || which chromium-browser) /usr/local/bin/chromium-fixed
+    && which chromium || which chromium-browser \
+    && ln -sf $(which chromium || which chromium-browser) /usr/local/bin/chromium-fixed \
+    && /usr/local/bin/chromium-fixed --version
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/local/bin/chromium-fixed
 ENV NODE_ENV=production
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+
+# Force all puppeteer-related packages to skip Chrome download
+RUN npm ci --omit=dev \
+    && rm -rf /root/.cache/puppeteer
+
 COPY . .
 
 CMD ["node", "index.js"]
