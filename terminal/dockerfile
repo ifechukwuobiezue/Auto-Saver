@@ -40,4 +40,4 @@ RUN npm ci --omit=dev \
 
 COPY . .
 
-CMD ["node", "index.js"]
+CMD find /app/.wwebjs_auth -name "Singleton*" -delete 2>/dev/null; node index.js
