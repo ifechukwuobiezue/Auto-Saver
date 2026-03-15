@@ -28,6 +28,9 @@ const oauth2Client = new google.auth.OAuth2(
 oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 const people = google.people({ version: "v1", auth: oauth2Client });
 
+// ===== IN-MEMORY GUARD =====
+const seenThisRun = new Set();
+
 // ===== HELPER: SLEEP =====
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -78,6 +81,13 @@ async function saveContact(name, phone) {
 
   const formattedPhone = phone.startsWith("+") ? phone : "+" + phone;
 
+  // Block duplicates immediately before any async calls
+  if (seenThisRun.has(formattedPhone)) {
+    console.log("Already seen this run:", formattedPhone);
+    return;
+  }
+  seenThisRun.add(formattedPhone);
+
   console.log("Checking:", formattedPhone, "Name:", name);
 
   if (await isNumberSaved(formattedPhone)) {
@@ -112,6 +122,8 @@ async function saveContact(name, phone) {
     }
   } catch (e) {
     console.error("Failed to save contact (Google):", e.message || e);
+    // Remove so it can retry on next message
+    seenThisRun.delete(formattedPhone);
   }
 }
 
@@ -144,6 +156,8 @@ async function backfillChats(client) {
           continue;
         }
         processedThisBackfill.add(phone);
+        // Also add to seenThisRun so live messages don't re-process
+        seenThisRun.add(phone);
 
         const alreadySaved = await isNumberSaved(phone);
         if (alreadySaved) {
