@@ -28,9 +28,6 @@ const oauth2Client = new google.auth.OAuth2(
 oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 const people = google.people({ version: "v1", auth: oauth2Client });
 
-// ===== IN-MEMORY GUARD =====
-const seenThisRun = new Set();
-
 // ===== HELPER: SLEEP =====
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -81,13 +78,7 @@ async function saveContact(name, phone) {
 
   const formattedPhone = phone.startsWith("+") ? phone : "+" + phone;
 
-  if (seenThisRun.has(formattedPhone)) {
-    console.log("Already seen this run:", formattedPhone);
-    return;
-  }
-  seenThisRun.add(formattedPhone);
-
-  console.log("Incoming message from:", formattedPhone, "Name:", name);
+  console.log("Checking:", formattedPhone, "Name:", name);
 
   if (await isNumberSaved(formattedPhone)) {
     console.log("Already saved (Supabase):", formattedPhone);
@@ -104,7 +95,7 @@ async function saveContact(name, phone) {
         phoneNumbers: [{ value: formattedPhone }],
       },
     });
-    console.log("✅ Saved contact to Google:", taggedName, formattedPhone);
+    console.log("Saved to Google:", taggedName, formattedPhone);
 
     const { error } = await supabase.from("saved_contacts").insert([
       {
@@ -115,23 +106,22 @@ async function saveContact(name, phone) {
     ]);
 
     if (error) {
-      console.error("❌ Supabase insert error:", error.message || error);
+      console.error("Supabase insert error:", error.message || error);
     } else {
-      console.log("✅ Saved contact to Supabase:", formattedPhone);
+      console.log("Saved to Supabase:", formattedPhone);
     }
   } catch (e) {
-    console.error("❌ Failed to save contact (Google):", e.message || e);
-    seenThisRun.delete(formattedPhone);
+    console.error("Failed to save contact (Google):", e.message || e);
   }
 }
 
 // ===== BACKFILL: SCAN ALL CHATS ON STARTUP =====
 async function backfillChats(client) {
-  console.log("🔄 Starting backfill — scanning all chats...");
+  console.log("Starting backfill — scanning all chats...");
   try {
     const chats = await client.getChats();
     const privateChats = chats.filter((c) => !c.isGroup);
-    console.log(`🔄 Found ${privateChats.length} private chats to scan`);
+    console.log(`Found ${privateChats.length} private chats to scan`);
 
     let saved = 0;
     let skipped = 0;
@@ -159,17 +149,15 @@ async function backfillChats(client) {
 
         await saveContact(name, phone);
         saved++;
-
-        // Delay to avoid Google API rate limiting
         await sleep(500);
       } catch (e) {
-        console.error("❌ Error processing chat during backfill:", e.message);
+        console.error("Error processing chat during backfill:", e.message);
       }
     }
 
-    console.log(`✅ Backfill complete — saved: ${saved}, skipped: ${skipped}`);
+    console.log(`Backfill complete — saved: ${saved}, skipped: ${skipped}`);
   } catch (e) {
-    console.error("❌ Backfill failed:", e.message || e);
+    console.error("Backfill failed:", e.message || e);
   }
 }
 
@@ -199,17 +187,16 @@ async function start() {
   });
 
   client.on("ready", async () => {
-    console.log("WhatsApp ready! Listening for incoming messages…");
-    // Run backfill on every startup
+    console.log("WhatsApp ready! Listening for incoming messages...");
     await backfillChats(client);
   });
 
   client.on("auth_failure", (msg) => {
-    console.error("❌ Auth failure:", msg);
+    console.error("Auth failure:", msg);
   });
 
   client.on("disconnected", (reason) => {
-    console.error("❌ Client disconnected:", reason);
+    console.error("Client disconnected:", reason);
   });
 
   client.on("message", async (msg) => {
@@ -230,16 +217,16 @@ async function start() {
 
       await saveContact(name, phone);
     } catch (e) {
-      console.error("❌ Error in message handler:", e.message || e);
+      console.error("Error in message handler:", e.message || e);
     }
   });
 
-  console.log("Initializing WhatsApp client…");
+  console.log("Initializing WhatsApp client...");
   try {
     await client.initialize();
     console.log("client.initialize() resolved");
   } catch (e) {
-    console.error("❌ Error during initialize:", e.message || e);
+    console.error("Error during initialize:", e.message || e);
   }
 }
 
