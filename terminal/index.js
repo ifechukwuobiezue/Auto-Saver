@@ -45,6 +45,31 @@ async function isNumberSaved(phone) {
   return data && data.length > 0;
 }
 
+// ===== HELPER: GET UNIQUE TAGGED NAME =====
+async function getUniqueTaggedName(baseName) {
+  const tagged = baseName.endsWith(TAG_SUFFIX)
+    ? baseName
+    : `${baseName}${TAG_SUFFIX}`;
+
+  // Check if this name already exists in Supabase
+  const { data } = await supabase
+    .from("saved_contacts")
+    .select("name")
+    .eq("user_email", USER_EMAIL)
+    .ilike("name", `${tagged}%`);
+
+  if (!data || data.length === 0) return tagged;
+
+  const existingNames = data.map((r) => r.name);
+  if (!existingNames.includes(tagged)) return tagged;
+
+  let counter = 2;
+  while (existingNames.includes(`${tagged} ${counter}`)) {
+    counter++;
+  }
+  return `${tagged} ${counter}`;
+}
+
 // ===== SAVE CONTACT =====
 async function saveContact(name, phone) {
   if (!phone) {
@@ -68,11 +93,8 @@ async function saveContact(name, phone) {
     return;
   }
 
-  // Prevent double ATH suffix
   const baseName = name || formattedPhone;
-  const taggedName = baseName.endsWith(TAG_SUFFIX)
-    ? baseName
-    : `${baseName}${TAG_SUFFIX}`;
+  const taggedName = await getUniqueTaggedName(baseName);
 
   try {
     await people.people.createContact({
@@ -98,7 +120,6 @@ async function saveContact(name, phone) {
     }
   } catch (e) {
     console.error("❌ Failed to save contact (Google):", e.message || e);
-    // Remove from seen so it can retry next message
     seenThisRun.delete(formattedPhone);
   }
 }
