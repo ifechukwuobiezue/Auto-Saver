@@ -68,7 +68,11 @@ async function saveContact(name, phone) {
     return;
   }
 
-  const taggedName = `${name || formattedPhone}${TAG_SUFFIX}`;
+  // Prevent double ATH suffix
+  const baseName = name || formattedPhone;
+  const taggedName = baseName.endsWith(TAG_SUFFIX)
+    ? baseName
+    : `${baseName}${TAG_SUFFIX}`;
 
   try {
     await people.people.createContact({
