@@ -118,6 +118,8 @@ async function saveContact(name, phone) {
 // ===== BACKFILL: SCAN ALL CHATS ON STARTUP =====
 async function backfillChats(client) {
   console.log("Starting backfill — scanning all chats...");
+  const processedThisBackfill = new Set();
+
   try {
     const chats = await client.getChats();
     const privateChats = chats.filter((c) => !c.isGroup);
@@ -135,17 +137,25 @@ async function backfillChats(client) {
         if (!waId || waId.includes("@g.us")) continue;
 
         const phone = "+" + waId.split("@")[0];
-        const name =
-          contact.pushname ||
-          contact.name ||
-          contact.shortName ||
-          phone;
+
+        // Skip if already processed in this backfill run
+        if (processedThisBackfill.has(phone)) {
+          skipped++;
+          continue;
+        }
+        processedThisBackfill.add(phone);
 
         const alreadySaved = await isNumberSaved(phone);
         if (alreadySaved) {
           skipped++;
           continue;
         }
+
+        const name =
+          contact.pushname ||
+          contact.name ||
+          contact.shortName ||
+          phone;
 
         await saveContact(name, phone);
         saved++;
