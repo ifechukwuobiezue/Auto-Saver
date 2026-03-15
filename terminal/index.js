@@ -31,6 +31,9 @@ const people = google.people({ version: "v1", auth: oauth2Client });
 // ===== IN-MEMORY GUARD =====
 const seenThisRun = new Set();
 
+// ===== HELPER: SLEEP =====
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // ===== HELPER: CHECK IF NUMBER ALREADY SAVED =====
 async function isNumberSaved(phone) {
   const { data, error } = await supabase
@@ -51,7 +54,6 @@ async function getUniqueTaggedName(baseName) {
     ? baseName
     : `${baseName}${TAG_SUFFIX}`;
 
-  // Check if this name already exists in Supabase
   const { data } = await supabase
     .from("saved_contacts")
     .select("name")
@@ -79,7 +81,6 @@ async function saveContact(name, phone) {
 
   const formattedPhone = phone.startsWith("+") ? phone : "+" + phone;
 
-  // Block duplicates immediately before any async calls
   if (seenThisRun.has(formattedPhone)) {
     console.log("Already seen this run:", formattedPhone);
     return;
@@ -124,6 +125,54 @@ async function saveContact(name, phone) {
   }
 }
 
+// ===== BACKFILL: SCAN ALL CHATS ON STARTUP =====
+async function backfillChats(client) {
+  console.log("🔄 Starting backfill — scanning all chats...");
+  try {
+    const chats = await client.getChats();
+    const privateChats = chats.filter((c) => !c.isGroup);
+    console.log(`🔄 Found ${privateChats.length} private chats to scan`);
+
+    let saved = 0;
+    let skipped = 0;
+
+    for (const chat of privateChats) {
+      try {
+        const contact = await chat.getContact();
+        if (!contact) continue;
+
+        const waId = contact.id?._serialized;
+        if (!waId || waId.includes("@g.us")) continue;
+
+        const phone = "+" + waId.split("@")[0];
+        const name =
+          contact.pushname ||
+          contact.name ||
+          contact.shortName ||
+          phone;
+
+        const alreadySaved = await isNumberSaved(phone);
+        if (alreadySaved) {
+          skipped++;
+          continue;
+        }
+
+        await saveContact(name, phone);
+        saved++;
+
+        // Delay to avoid Google API rate limiting
+        await sleep(500);
+      } catch (e) {
+        console.error("❌ Error processing chat during backfill:", e.message);
+      }
+    }
+
+    console.log(`✅ Backfill complete — saved: ${saved}, skipped: ${skipped}`);
+  } catch (e) {
+    console.error("❌ Backfill failed:", e.message || e);
+  }
+}
+
 // ===== MAIN START FUNCTION =====
 async function start() {
   const client = new Client({
@@ -149,8 +198,10 @@ async function start() {
     qrcode.generate(qr, { small: true });
   });
 
-  client.on("ready", () => {
+  client.on("ready", async () => {
     console.log("WhatsApp ready! Listening for incoming messages…");
+    // Run backfill on every startup
+    await backfillChats(client);
   });
 
   client.on("auth_failure", (msg) => {
