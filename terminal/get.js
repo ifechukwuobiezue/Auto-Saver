@@ -1,7 +1,8 @@
-const { google } = require('googleapis');
+const { google } = require("googleapis");
+require("dotenv").config();
 
-const CLIENT_ID = "";
-const CLIENT_SECRET = "";
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
 const oauth2Client = new google.auth.OAuth2(
   CLIENT_ID,
@@ -10,8 +11,8 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 const authUrl = oauth2Client.generateAuthUrl({
-  access_type: 'offline',
-  scope: ['https://www.googleapis.com/auth/contacts']
+  access_type: "offline",
+  scope: ["https://www.googleapis.com/auth/contacts"],
 });
 
 console.log("\nOpen this URL in your browser:\n");
