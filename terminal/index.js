@@ -28,7 +28,7 @@ const oauth2Client = new google.auth.OAuth2(
 oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
 const people = google.people({ version: "v1", auth: oauth2Client });
 
-// ===== IN-MEMORY GUARD =====
+// ===== IN-MEMORY GUARD (for live messages only) =====
 const seenThisRun = new Set();
 
 // ===== HELPER: SLEEP =====
@@ -156,20 +156,17 @@ async function backfillChats(client) {
           continue;
         }
         processedThisBackfill.add(phone);
-        // Also add to seenThisRun so live messages don't re-process
-        seenThisRun.add(phone);
 
+        // Skip if already in Supabase
         const alreadySaved = await isNumberSaved(phone);
         if (alreadySaved) {
+          seenThisRun.add(phone); // mark so live messages skip it too
           skipped++;
           continue;
         }
 
         const name =
-          contact.pushname ||
-          contact.name ||
-          contact.shortName ||
-          phone;
+          contact.pushname || contact.name || contact.shortName || phone;
 
         await saveContact(name, phone);
         saved++;
@@ -234,10 +231,7 @@ async function start() {
 
       const phone = "+" + waId.split("@")[0];
       const name =
-        contact.pushname ||
-        contact.name ||
-        contact.shortName ||
-        phone;
+        contact.pushname || contact.name || contact.shortName || phone;
 
       await saveContact(name, phone);
     } catch (e) {

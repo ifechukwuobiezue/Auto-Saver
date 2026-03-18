@@ -6,7 +6,7 @@ const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = "http://localhost";
 
 const CODE =
-  "4/0AfrIepD3ZhqM7c3awS8-LsaUwvyjqlkijxKBaSkkhZTc_3bIvK66fkdQCfbhAv5atnxo1A";
+  "4/0AfrIepAT1EwIU8mT0JRJ7GBuiotXY0_B4XbkQjvLsLorTQBjCGVPNf4iSXC0SPfoGjzBXQ";
 
 const oauth2Client = new google.auth.OAuth2(
   CLIENT_ID,
