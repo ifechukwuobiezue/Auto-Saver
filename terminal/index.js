@@ -216,8 +216,11 @@ async function start() {
     console.error("Auth failure:", msg);
   });
 
-  client.on("disconnected", (reason) => {
+  client.on("disconnected", async (reason) => {
     console.error("Client disconnected:", reason);
+    console.log("Restarting in 10 seconds...");
+    await sleep(10000);
+    await start();
   });
 
   client.on("message", async (msg) => {
