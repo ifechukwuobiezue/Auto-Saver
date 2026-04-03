@@ -220,7 +220,7 @@ async function start() {
     console.error("Client disconnected:", reason);
     console.log("Restarting in 10 seconds...");
     await sleep(10000);
-    await start();
+    process.exit(1);
   });
 
   client.on("message", async (msg) => {
